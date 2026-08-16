@@ -13,7 +13,7 @@ model = ChatOpenRouter(
 )
 
 response = model.invoke(
-    "What is the capital of France?"
+    "What is 2+2"
 )
 
 print(response.content)
