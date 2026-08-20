@@ -24,11 +24,31 @@ def get_weather(city: str):
     else:
         return "Error : Could not fetch weather data"
 
+import subprocess
+
+def run_command(command):
+    print(f"Tool called : run_command({command})")
+    try:
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            return result.stdout if result.stdout else "Command executed successfully (no output)."
+        else:
+            return f"Error (Exit Code {result.returncode}): {result.stderr}"
+    except Exception as e:
+        return f"Exception occurred while running command: {str(e)}"
+
+# print(run_command("dir"))
+
 available_tools = {
     "get_weather": {
         "fn" : get_weather,
         "description" : "Takes a city name as an input and returns the current weather for the city"
+    },
+    "run_command":{
+        "fn":run_command,
+        "description":"Runs a command on the system"
     }
+
 }
 
 model = ChatOpenRouter(
@@ -64,6 +84,10 @@ Output JSON Format :
 
 }}
 
+Available Tools : 
+- get_weather: Takes a city name as an input and returns the current weather for this city.
+- run_command: Takes a command as an input and runs it on the Windows system. IMPORTANT: The target OS is Windows. Use Windows-compatible command-line syntax (e.g. use `echo. > filename` or `type nul > filename` to create empty files, do not use `touch`).
+
 
 Example : 
 User Query : What is the weather of new york?
@@ -83,42 +107,42 @@ messages=[
     
 ]
 
-query=input("> ")
-messages.append( HumanMessage(
+
+while True:
+    query=input("> ")
+    messages.append( HumanMessage(
         content=query
     ))
 
-while True:
-    response=model.invoke(messages)
-
-    parsed_response=json.loads(response.content)
-    messages.append(AIMessage(content=json.dumps(parsed_response)))
-
-
-    if parsed_response.get("step") == "plan":
-        print(f"AI : {parsed_response.get('content')}")
-        continue
+    while True:
+        response=model.invoke(messages)
+        parsed_response=json.loads(response.content)
+        messages.append(AIMessage(content=json.dumps(   parsed_response)))
 
 
+        if parsed_response.get("step") == "plan":
+          print(f"AI : {parsed_response.get('content')}")
+          continue
 
-    if parsed_response.get("step") == "action":
-        tool_name=parsed_response.get("function")
-        tool_input=parsed_response.get("input")
-        
-        if tool_name in available_tools:
-            tool=available_tools[tool_name]
-            result=tool["fn"](tool_input)
-            messages.append(AIMessage(content=f"Tool Output : {result}"))
-            print(f"Observation : {result}")
-            continue
-        else:
-            messages.append(AIMessage(content=f"Error : Tool {tool_name} not found"))
-            print(f"Error : Tool {tool_name} not found")
-            continue
+
+
+        if parsed_response.get("step") == "action":
+            tool_name=parsed_response.get("function")
+            tool_input=parsed_response.get("input")
+            if tool_name in available_tools:
+                tool=available_tools[tool_name]
+                result=tool["fn"](tool_input)
+                messages.append(AIMessage(content=f"Tool Output : {result}"))
+                print(f"Observation : {result}")
+                continue
+            else:
+                    messages.append(AIMessage(content=f"Error : Tool {tool_name} not found"))
+                    print(f"Error : Tool {tool_name} not found")
+                    continue
     
-    if parsed_response.get("step") == "final":
-        print(f"Final Answer : {parsed_response.get('content')}")
-        break
+        if parsed_response.get("step") == "final":
+                print(f"Final Answer : {parsed_response.get('content')}")
+                break
     
     
 
