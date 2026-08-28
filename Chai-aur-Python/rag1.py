@@ -7,12 +7,20 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
 from langchain_qdrant import QdrantVectorStore
 load_dotenv()
+from langchain_openrouter import ChatOpenRouter
+from langchain_core.messages import SystemMessage, HumanMessage
 
 pdf_path = Path(__file__).parent/"RAG_Test_Document.pdf"
 
 loader = PyPDFLoader(file_path=pdf_path)
 documents = loader.load()
 # print(documents)
+
+model = ChatOpenRouter(
+    model="openai/gpt-4.1-mini",
+    temperature=0, #Softmax adjust kr skte ho
+    max_tokens=200, # max_tokens used in the output is limited to 200 only 
+)
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
@@ -46,8 +54,31 @@ vectorstore = QdrantVectorStore.from_existing_collection(
 
 query = "What is this PDF is about..??"
 
-results = vectorstore.similarity_search(query,limit=2)
+results = vectorstore.similarity_search(query)
 
-print(results[0].page_content)
+# print(results[0].page_content)
 
 # print("Vector store created successfully")
+
+system_prompt = """
+
+You are a helpful assistant.
+Use the retrieved data to answer the query.
+If the answer is not in the retrieved data, say so.
+
+"""
+
+messages = [
+    SystemMessage(
+        content=system_prompt
+    ),
+    HumanMessage(
+        content=query+f"\n\nRetrieved data: {results[0].page_content}"
+    )
+]
+
+response = model.invoke(messages)
+
+print(response.content)
+
+
