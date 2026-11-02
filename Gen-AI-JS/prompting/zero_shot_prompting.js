@@ -12,7 +12,7 @@ const client = new OpenAI({
 async function main() {
     try {
         const response = await client.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "nvidia/nemotron-3-ultra-550b-a55b:free",
             messages: [
                 {
                     role: "user",
