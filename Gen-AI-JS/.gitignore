@@ -1,0 +1,8 @@
+*.txt
+*.env
+.env
+node_modules/
+.tiktoken
+package-lock.json
+__pycache__
+venv/
